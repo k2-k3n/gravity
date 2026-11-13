@@ -1,0 +1,10 @@
+{
+  "name": "Gravity Resonator",
+  "id": "org.resona.demo.gravity.resonator",
+  "version": "0.1.1",
+  "api": 1,
+  "description": "Six guitar-excited tuned resonators with smooth damping, input-preserving suspend and mono output",
+  "sources": [
+    "src/main.cpp"
+  ]
+}

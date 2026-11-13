@@ -1,0 +1,31 @@
+{
+  "folder": "10-Gravity",
+  "description": "吉他激发调谐共振，FLOAT 控制金属到玻璃般的尾音。",
+  "app": {
+    "file": "App.rpk",
+    "id": "org.resona.demo.gravity",
+    "name": "Gravity",
+    "version": "0.2.1",
+    "kind": 1,
+    "bytes": 196656,
+    "sha256": "4dcdedd726574df4bc16313a2421b1426d2602789326cd3ba098b29c5ee7d367",
+    "crc32": 3191119170
+  },
+  "audio_packs": [
+    {
+      "file": "Audio-Pack.rpk",
+      "id": "org.resona.demo.gravity.resonator",
+      "name": "Gravity Resonator",
+      "version": "0.1.1",
+      "kind": 0,
+      "bytes": 3548,
+      "sha256": "d86b5748ccada06354bb52a66a90ecf3e147a7ce2664457e20f8e870ae94ec14",
+      "crc32": 844227871
+    }
+  ],
+  "source": "source/",
+  "cover": "界面.png",
+  "license_file_present": true,
+  "host_build_check": "passed",
+  "community_upload": "not sent"
+}
