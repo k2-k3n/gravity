@@ -12,7 +12,7 @@ host=Host(1,48000,256,1,2,b'resona-box',None,C.sizeof(Host),None,None)
 state=C.create_string_buffer(m.state+127);sp=(C.addressof(state)+127)&~127
 init(sp,C.byref(host));counts=[1,17,64,128,256]
 class StateView(C.Structure):
- _fields_=[('values',U*5),('targets',U*15),('sr',F),('re',F*6),('im',F*6),('c',F*6),('sn',F*6),('radius',F),('hold',F),('mix',F),('level',F),('dc',F)]
+ _fields_=[('values',U*5),('targets',U*15),('re',F*6),('im',F*6),('c',F*6),('sn',F*6),('radius',F),('hold',F),('mix',F),('level',F),('dc',F)]
 view=StateView.from_address(sp)
 checked_blocks=0;worst_rotation_norm_squared=0.;worst_pole_radius=0.
 def inspect_poles():

@@ -18,14 +18,14 @@ struct Graph {
 
 // Create the chain ids[0] -> ids[1] ... (n <= 2) once. Returns 0, or a RESONA_ERR_*;
 // safe to call again after a failure (e.g. once the pack is installed).
-inline int start(const resona_platform *P, Graph &g, const char *const *ids, uint32_t n) {
+inline int start(const resona_platform *P, Graph &g, const char *const *ids, uint32_t n, const char *version) {
     if (g.count) return RESONA_OK;
     if (n == 0 || n > 2) return RESONA_ERR_ARG;
     if (!g.owned) { int rc = g.fx.begin(P); if (rc) return rc; g.owned = 1; }
     resona_effect_handle h[2] = {0, 0};
     for (uint32_t i = 0; i < n; ++i) {
         g.fx.clear_error();
-        h[i] = g.fx.pack(ids[i]);
+        h[i] = g.fx.pack(ids[i], version);
         if (!h[i]) {
             int rc = g.fx.error() ? g.fx.error() : RESONA_ERR_STATE;
             for (uint32_t k = 0; k < i; ++k) P->effect_destroy(h[k]);
@@ -57,6 +57,6 @@ inline void stop(const resona_platform *P, Graph &g) {
     g.count = 0;
 }
 
-inline int start(const resona_platform *P, Graph &g, const char *id) { return start(P, g, &id, 1); }
+inline int start(const resona_platform *P, Graph &g, const char *id, const char *version) { return start(P, g, &id, 1, version); }
 
 }  // namespace own_audio

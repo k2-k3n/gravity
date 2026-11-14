@@ -1,7 +1,7 @@
 {
   "name": "Gravity",
   "id": "org.resona.demo.gravity",
-  "version": "0.2.1",
+  "version": "0.2.10",
   "api": 1,
   "description": "A kinetic resonant instrument: mono guitar excites tuned glass-like tails, controlled by key, float and suspend.",
   "kind": "app",

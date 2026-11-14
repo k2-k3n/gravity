@@ -2,26 +2,26 @@
 
 ![Gravity](community-cover.png)
 
-吉他一响，就会带出按调性排列的共振尾音。按住 SUSPEND，可以让那段余音多留一会儿。
+吉他一响，就会带出按调性排列的共振尾音。下方长按一次锁住余音，再长按一次恢复衰减。
 
 ## 配套音频包
 
 先安装音频包，再安装 App。
 
-- Gravity Resonator `org.resona.demo.gravity.resonator` 0.1.1
+- Gravity Resonator `org.resona.demo.gravity.resonator` 0.1.3
 
 ## 两个编码器
 
-| 页面／模式 | 上方旋转 | 上方短按 | 上方长按 | 下方旋转 | 下方短按 | 下方长按／按住 |
+| 页面／模式 | 上方旋转 | 上方短按 | 上方长按 | 下方旋转 | 下方短按 | 下方长按 |
 | --- | --- | --- | --- | --- | --- | --- |
-| Gravity | 选 C～B 调 | 小调／大调 | 重置为 D 小调、FLOAT 68，并重试音频包 | 调 FLOAT 0～100 | 干声对比开／关 | 按住 SUSPEND 延长共振，松开恢复 |
+| Gravity | 选 C～B 调 | 小调／大调 | 重置为 D 小调、FLOAT 68，退出干声对比并重试音频包 | 调 FLOAT 0～100 | 干声对比开／关 | 长按切换 SUSPEND |
 
 ## 项目详细说明
 
 # Gravity
 
 Your guitar excites six tuned resonances in a chosen key. FLOAT moves them from short metallic rings to long,
-glass-like tails; holding the big knob suspends them in the air while your new notes come through dry. Nothing
+glass-like tails; a long press on the big knob toggles SUSPEND while your new notes come through dry. Nothing
 sounds without input. The sound is the nested `dsp/` pack (**Gravity Resonator**); the App builds its own
 Guitar -> Gravity Resonator -> Output graph and drives it.
 
@@ -32,8 +32,8 @@ retries once a second.
 
 | Control | Turn | Click | Long press / hold |
 |---|---|---|---|
-| SELECTOR (top) | key C to B | minor / major | reset to D minor, FLOAT 68; retry the pack |
-| CUSTOMIZE (big) | FLOAT 0 to 100 (2 per detent) | DRY: compare with the guitar, level-matched within about 1.5 dB | hold: SUSPEND; release returns to normal decay |
+| SELECTOR (top) | key C to B | minor / major | reset to D minor and FLOAT 68, exit DRY, restore MIX 65 if it is zero, and retry the pack |
+| CUSTOMIZE (big) | FLOAT 0 to 100 (2 per detent) | DRY: compare with the guitar | long press to toggle SUSPEND |
 
 Key, FLOAT, DRY, MIX and LEVEL are saved 1.2 s after the last change; SUSPEND is not saved.
 
@@ -44,7 +44,7 @@ If the OS bypasses the DSP for its CPU budget, the App shows **CPU LIMIT**, drop
 
 The artwork from `assets/gravity-reference.png` with a floating stone that bobs more as FLOAT rises and settles a
 little while suspended. On the left: the key and MINOR / MAJOR, then the FLOAT value (DRY while comparing).
-SUSPENDED shows bottom right while held.
+SUSPENDED shows at bottom right while active.
 
 ## Controller
 
@@ -60,7 +60,7 @@ MIX have every setting. The pads override the settings only while held.
 | 23 | Mix | 0–127 = 0–100 (default 65) |
 | 24 | Level | 0–127 = 0–100 (default 82) |
 | 25 | Dry compare | 0 off, 1 on |
-| 30 | HOLD pad | 127 suspends, 0 releases (like holding the big encoder) |
+| 30 | HOLD pad | 127 suspends, 0 releases the pad hold |
 | 31 | SOAR pad | 127: FLOAT 100 while held |
 | 32 | SINK pad | 127: FLOAT 0 while held (SOAR wins) |
 | 33 | FLIP pad | 127: the other of minor/major while held |
@@ -75,11 +75,10 @@ Only in a build with `-DRESONA_DEMO_BENCH` (also the screen-capture SysEx); a no
 | CC | Meaning |
 | --- | --- |
 | 20 / 21 | Top / big turn; value is 64 + signed detents |
-| 22 / 23 | Top / big raw key; 127 press, 0 release |
 | 24 / 25 | Top / big click; any nonzero value |
 | 26 / 27 | Top / big long gesture; any nonzero value |
 
-CC 27 can start SUSPEND without a raw press; CC 23 = 0 releases it.
+On a bench build, send CC 27 with a nonzero value to toggle SUSPEND.
 
 ## DSP: Gravity Resonator
 
@@ -87,14 +86,13 @@ CC 27 can start SUSPEND without a raw press; CC 23 = 0 releases it.
           SUSPEND: the resonators stop decaying and take no new input
           -> MIX with the dry guitar -> LEVEL -> soft limiter
 
-No oscillators and no delay buffers: every tone comes from the guitar's own energy. Below MIX 65 the dry path gains
-make-up, so DRY (MIX 0) matches FLOAT's loudness. Mono.
+Each resonator is excited by the guitar. In DRY, the guitar passes through the DC filter, LEVEL and soft limiter. Mono.
 
 | Parameter | Range | Set by the App |
 |---|---|---|
 | KEY | 0 to 23: 0–11 C–B minor, 12–23 C–B major | top turn and click (default 2, D minor); FLIP pad |
 | FLOAT | 0 to 100 % | big turn (default 68); SOAR / SINK pads |
-| SUSPEND | 0 / 1 | big hold, or the HOLD pad |
+| SUSPEND | 0 / 1 | big encoder long press, or the HOLD pad |
 | MIX | 0 to 100 % | 65, or the controller; 0 while DRY |
 | LEVEL | 0 to 100 % | 82, or the controller |
 

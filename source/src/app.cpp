@@ -48,7 +48,7 @@ void setup(State*s){
  if(s->ms<s->nextPoll)return;s->nextPoll=s->ms+1000;
  if(s->ready&&trip_guard::faulted(P,g_audio.h[0])){trip(s);return;}
  // The App owns audio: Guitar -> Gravity Resonator -> Output (own_audio.h); retried until installed.
- int rc=own_audio::start(P,g_audio,kPackId);if(rc<0){s->ready=0;s->error=rc;return;}
+ int rc=own_audio::start(P,g_audio,kPackId,"0.1.3");if(rc<0){s->ready=0;s->error=rc;return;}
  resona_effect_info fi={};rc=P->effect_info(g_audio.h[0],&fi);
  if(rc!=RESONA_OK||fi.param_count!=5){s->ready=0;s->error=rc<0?rc:RESONA_ERR_STATE;return;}
  if(!s->ready){rc=P->effect_enable(g_audio.h[0],1);if(rc<0){s->error=rc;return;}s->error=0;s->ready=1;push(s);}
@@ -73,11 +73,13 @@ static void draw(State*s){uint16_t*px=nullptr;uint32_t stride=0;resona_ui*ui=P->
  demo_capture::remember(px,stride);P->screen_present(0,0,0,0);
 }
 static void changed(State*s){s->changed=s->ms;s->savePending=1;}
-static void key(State*s,int n,bool down){if(n==1){s->held=down?1:0;param(s,2,(float)heldNow(s));}}
 static void input(State*s,int n,int kind,int delta){
  if(kind==RESONA_EVENT_TURN){if(n==0){int base=s->key/12*12;s->key=base+((s->key%12+delta)%12+12)%12;param(s,0,(float)keyNow(s));}else{s->amount=clamp(s->amount+delta*2,0,100);param(s,1,(float)amountNow(s));}changed(s);}
- else if(kind==RESONA_EVENT_CLICK){if(n==0){s->key=(s->key+12)%24;param(s,0,(float)keyNow(s));changed(s);}else{s->dry^=1;param(s,3,mixNow(s));changed(s);}}
- else if(kind==RESONA_EVENT_LONG){if(n==0){s->key=2;s->amount=68;push(s);changed(s);if(!s->ready){s->stage=0;s->error=0;trip_guard::clear(s->trip);s->nextPoll=s->ms;}}else if(!s->held){s->held=1;param(s,2,1.f);}}
+ else if(kind==RESONA_EVENT_CLICK){
+  if(n==0){s->key=(s->key+12)%24;param(s,0,(float)keyNow(s));}else{s->dry^=1;param(s,3,mixNow(s));}
+  changed(s);
+ }
+ else if(kind==RESONA_EVENT_LONG){if(n==0){s->key=2;s->amount=68;s->dry=0;if(!s->mix)s->mix=65;push(s);changed(s);if(!s->ready){s->stage=0;s->error=0;trip_guard::clear(s->trip);s->nextPoll=s->ms;}}else{s->held=!s->held;param(s,2,(float)heldNow(s));}}
  split(s);
 }
 static int init(void*p,const resona_platform*platform){P=platform;
@@ -93,17 +95,16 @@ static void event(void*p,const resona_app_event*ev){ if(demo_capture::event(P,ev
   else{if(m.cc==CC_NOTE||m.cc==CC_MODE)s->key=s->major*12+s->note;changed(s);}
   push(s);return;}
  if(ev->kind==RESONA_APP_EV_INPUT)input(s,(int)ev->u.input.input,(int)ev->u.input.kind,ev->u.input.value);
- else if(ev->kind==RESONA_APP_EV_KEY)key(s,(int)ev->u.key.key,ev->u.key.down!=0);
 #ifdef RESONA_DEMO_BENCH
- // Bench-only: MIDI channel 16 CC20..27 emulate the encoders and keys.
- else if(ev->kind==RESONA_APP_EV_MIDI&&ev->u.midi.len>=3){const uint8_t*m=ev->u.midi.data;if(m[0]==0xbf){int cc=m[1],v=m[2];if(cc==20||cc==21)input(s,cc-20,RESONA_EVENT_TURN,v-64);else if(cc==22||cc==23)key(s,cc-22,v>=64);else if(v>0&&cc>=24&&cc<=27)input(s,(cc-24)&1,cc<26?RESONA_EVENT_CLICK:RESONA_EVENT_LONG,0);}}
+ // Bench-only: MIDI channel 16 CC20–21 and CC24–27 emulate encoder gestures.
+ else if(ev->kind==RESONA_APP_EV_MIDI&&ev->u.midi.len>=3){const uint8_t*m=ev->u.midi.data;if(m[0]==0xbf){int cc=m[1],v=m[2];if(cc==20||cc==21)input(s,cc-20,RESONA_EVENT_TURN,v-64);else if(v>0&&cc>=24&&cc<=27)input(s,(cc-24)&1,cc<26?RESONA_EVENT_CLICK:RESONA_EVENT_LONG,0);}}
 #endif
  else if(ev->kind==RESONA_APP_EV_CHANGED&&ev->u.changed.what==RESONA_CHANGED_MODELS&&!s->ready&&s->error!=RESONA_ERR_BUDGET){s->stage=0;s->error=0;}
  else if(ev->kind==RESONA_APP_EV_AUDIO){if(ev->u.audio.tripped_role>=0||(s->ready&&trip_guard::faulted(P,g_audio.h[0])))trip(s);}
 }
 static void frame(void*p,uint32_t ms){ if(demo_capture::paused(P))return;auto*s=(State*)p;s->ms+=ms;setup(s);ctl::sync(P,s->link,kBind,10,s->ms);P->meters(&s->in,&s->out,nullptr);
  // A failed write is retried on the next change; it is not an audio error, so it never reaches s->error.
- if(s->savePending&&s->ms-s->changed>1200&&!s->held){Saved v={kMagicV3,s->key,s->amount,s->dry,s->mix,s->level};s->savePending=0;(void)P->app_store_write(0,&v,sizeof v);}
+ if(s->savePending&&s->ms-s->changed>1200){Saved v={kMagicV3,s->key,s->amount,s->dry,s->mix,s->level};s->savePending=0;(void)P->app_store_write(0,&v,sizeof v);}
  if(s->ms%80<ms)draw(s);}
 const resona_app app={RESONA_PLATFORM_VERSION,sizeof(resona_app),RESONA_APP_ID,RESONA_APP_NAME,RESONA_APP_VERSION,sizeof(State),1024,init,event,frame};
 }
